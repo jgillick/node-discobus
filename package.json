@@ -1,0 +1,25 @@
+{
+  "name": "discobus",
+  "version": "1.0.0",
+  "description": "A Disco Bus protocol master node implementation for nodejs",
+  "main": "./lib/discobus",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jgillick/node-discobus.git"
+  },
+  "keywords": [
+    "communication",
+    "network",
+    "rs485",
+    "multidrop"
+  ],
+  "author": "Jeremy Gillick",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jgillick/node-disco-bus/issues"
+  },
+  "homepage": "https://github.com/jgillick/node-disco-bus#readme"
+}

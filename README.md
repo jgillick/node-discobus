@@ -1,2 +1,4 @@
-# node-disco-bus
-A Disco Bus protocol master node implementation for nodejs
+# Node Disco Bus 
+
+An [Disco Bus protocol](https://github.com/jgillick/Disco-Bus-Protocol) master node 
+implementation for nodejs
