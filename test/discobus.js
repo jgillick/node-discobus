@@ -39,6 +39,19 @@ describe('DiscoBus Object', function() {
     expect(port.on).to.be.calledWith('data');
     expect(port.on).to.be.calledWith('open'); 
   });
+
+  it('supports chaining methods', function() {
+    let port = new SerialPort();
+    bus.connectWith(port);
+
+    function chainTest() {
+      bus.startMessage(0x00, 1)
+        .sendData(0x00)
+        .endMessage()
+        .subscribe();
+    }
+    expect(chainTest).to.not.throw(Error);
+  });
 });
 
 describe('Messaging', function() {
@@ -67,9 +80,17 @@ describe('Messaging', function() {
     expect(startWrapper).to.throw(Error);
   });
 
+  it('throws an exception when trying send data to a message that doesn\'t exist', function() {
+    expect(() => bus.sendData([1,2,3]) ).to.throw(Error);
+  });
+
+  it('throws an exception when trying to end a message that doesn\'t exist', function() {
+    expect(() => bus.endMessage() ).to.throw(Error);
+  });
+
   it('sends a standard message', function() {
     let expectedData = [
-      0xFF, 0xFF, 0x00, 0x05, 0x09, 0x01, 0x02, // header
+      0xFF, 0xFF, 0x00, 0x05, 0x09, 0x01, 0x02, // Header
       0x01, 0x02, // Data
       57, 231     // CRC
     ];
@@ -100,4 +121,31 @@ describe('Messaging', function() {
     });
     expect(bus.port.buffer).to.deep.equal(expectedData);
   });
+
+  it('creates default fill data for response message');
+
+  it('creates a message observer');
+
+  it('fills in data when prematurely ending a message');
+
+  it('receives responses from nodes');
+
+  it('times out slow responding nodes');
+});
+
+describe('Addressing', function() {
+
+  it('enables outgoing daisy line');
+
+  it('confirms valid address');
+
+  it('corrects invalid address');
+
+  it('times out after not receiving an address in x milliseconds');
+
+  it('cancels addressing on too many invalid addresses');
+
+  it('ends addressing with two 0xFF and a NULL message');
+
+  it('resets daisy line after addressing');
 });
