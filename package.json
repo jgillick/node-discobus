@@ -2,24 +2,55 @@
   "name": "discobus",
   "version": "1.0.0",
   "description": "A Disco Bus protocol master node implementation for nodejs",
+  "author": "Jeremy Gillick",
+  "license": "MIT",
   "main": "./lib/discobus",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jgillick/node-discobus.git"
-  },
   "keywords": [
     "communication",
     "network",
     "rs485",
     "multidrop"
   ],
-  "author": "Jeremy Gillick",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/jgillick/node-disco-bus/issues"
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha",
+    "build": "babel src --out-dir dist",
+    "test_watch": "node_modules/mocha/bin/mocha --watch",
+    "build_watch": "babel src --out-dir dist --watch",
+    "prepublish": "npm run build"
   },
-  "homepage": "https://github.com/jgillick/node-disco-bus#readme"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jgillick/node-discobus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jgillick/node-discobus/issues"
+  },
+  "homepage": "https://github.com/jgillick/node-discobus#readme",
+  "devDependencies": {
+    "babel-cli": "^6.14.0",
+    "babel-preset-es2015": "^6.14.0",
+    "chai": "^3.5.0",
+    "gulp": "^3.9.1",
+    "gulp-babel": "^6.1.2",
+    "gulp-changed": "^1.3.2",
+    "gulp-mocha": "^3.0.1",
+    "mocha": "^3.0.2",
+    "proxyquire": "^1.7.10",
+    "rxjs": "^5.0.0-beta.12",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^2.8.0"
+  },
+  "dependencies": {
+    "crc": "^3.4.0",
+    "serialport": "^4.0.1"
+  },
+  "typescript": {
+    "definition": "index.d.ts"
+  },
+  "babel": {
+    "presets": [
+      "babel-preset-es2015"
+    ],
+    "sourceRoot": "src"
+  }
 }
