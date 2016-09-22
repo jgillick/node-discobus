@@ -12,6 +12,9 @@ const DiscoBusMocks = require('./mocks/discobus.mock.js');
 const DiscoBus = DiscoBusMocks.DiscoBus;
 const SerialPort = DiscoBusMocks.SerialPort;
 
+/**
+ * General object construction
+ */
 describe('DiscoBus Object', function() {
   let bus;
   beforeEach(function(){ 
@@ -52,15 +55,22 @@ describe('DiscoBus Object', function() {
     }
     expect(chainTest).to.not.throw(Error);
   });
+
+  it('removes port listeners when connecting to new port');
 });
 
+/**
+ * Messaging protocol
+ */
 describe('Messaging', function() {
   let bus;
 
   beforeEach(function(){ 
     bus = new DiscoBus();
+    bus.connectWith(new SerialPort());
     bus.nodeNum = 5;
-    bus.connectTo('/dev/port', {baudRate: 9600});
+    bus.timeouts.addressing = 1;
+    bus.timeouts.nodeResponse = 1;
   });
 
   it('throws an exception if another message is being sent', function() {
@@ -122,17 +132,94 @@ describe('Messaging', function() {
     expect(bus.port.buffer).to.deep.equal(expectedData);
   });
 
-  it('creates default fill data for response message');
+  it('creates default fill data for response message', function() {
+  // When no `responseDefault` is set in message options
+    bus.startMessage(0x09, 5, {
+      responseMsg: true 
+    });
+    expect(bus._msgOptions.responseDefault).to.deep.equal([0, 0, 0, 0, 0]);
+  });
 
-  it('creates a message observer');
+  it('creates partial default fill data for response message', function() {
+  // When length of `responseDefault` does not match message length
+    bus.startMessage(0x09, 5, {
+      responseMsg: true,
+      responseDefault: [1, 2, 3]
+    });
+    expect(bus._msgOptions.responseDefault).to.deep.equal([1, 2, 3, 0, 0]);
+  });
 
-  it('fills in data when prematurely ending a message');
+  it('inserts default response when response timeout occurs', function(done) {
+    bus.startMessage(0x09, 5, {
+      responseMsg: true 
+    });
 
-  it('receives responses from nodes');
+    bus.port.buffer = []; // clear header bytes
+    
+    bus.subscribe(null, null, () => {
+      expect(bus.port.buffer).to.have.lengthOf(7);
+      expect(bus.port.buffer.slice(0, 5)).to.deep.equal([0, 0, 0, 0, 0]);
+      done();
+    });
+  });
 
-  it('times out slow responding nodes');
+  it('inserts partial default response when response timeout occurs', function(done) {
+    bus.startMessage(0x09, 5, {
+      responseMsg: true 
+    });
+
+    // Send a few bytes 
+    bus.port.receiveData(Buffer.from([1, 2, 3])); 
+    
+    bus.subscribe(null, null, () => {
+      expect(bus.messageResponse).to.deep.equal([1, 2, 3, 0, 0]);
+      done();
+    });
+  });
+
+  it('creates a message observer', function(done) {
+    let nextSpy = sinon.spy();
+    let completeSpy = sinon.spy();
+
+    bus.startMessage(0x09, 2, {
+      responseMsg: true 
+    }); 
+
+    bus.subscribe(nextSpy, null, completeSpy);
+    bus.subscribe(null, null, () => {
+      expect(nextSpy).to.have.been.calledTwice;
+      expect(completeSpy).to.have.been.calledOnce;
+      done();
+    });
+    
+    bus.port.receiveData(Buffer.from([1, 2])); 
+  });
+
+  it('fills in data when prematurely ending a message', function(done) {
+    let errorSpy = sinon.spy();
+
+    bus.on('error', errorSpy);
+    bus.startMessage(0x09, 5, {
+      responseMsg: true 
+    });
+
+    bus.subscribe(null, null, () => {
+      expect(errorSpy).to.have.been.called;
+      expect(bus.messageResponse).to.deep.equal([0, 0, 0, 0, 0]);
+      done();
+    });
+
+    bus.endMessage();
+  });
+
+  it('gets responses from nodes'); 
+
+  it('times out responding nodes');
 });
 
+/**
+ * Addressing
+ */
 describe('Addressing', function() {
 
   it('enables outgoing daisy line');

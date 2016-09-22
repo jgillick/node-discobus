@@ -1,18 +1,31 @@
+'use strict';
+
 const sinon = require('sinon');
+const EventEmitter = require('events');
 const proxyquire =  require('proxyquire');
 
-// Stub out SerialPort module 
-var SerialPortMock = function(dev, options) {
-  this.dev = dev;
-  this.options = options;
-  this.buffer = [];
-  sinon.spy(this, 'write');
+// Stub out SerialPort module
+class SerialPortMock extends EventEmitter { 
+  constructor (dev, options) {
+    super();
+    this.dev = dev;
+    this.options = options;
+    this.buffer = [];
+
+    sinon.spy(this, 'write');
+    sinon.spy(this, 'on');
+  }
+
+  write(data) {
+    this.buffer.push(...data);
+  }
+  drain (cb) {
+    cb();
+  }
+  receiveData(data) {
+    this.emit('data', data);
+  }
 }
-SerialPortMock.prototype.on = sinon.spy();
-SerialPortMock.prototype.drain = sinon.spy();
-SerialPortMock.prototype.write = function(data){
-  this.buffer.push(...data);
-};
 
 // Module updates
 var DiscoBus = proxyquire('../../dist/discobus', { 

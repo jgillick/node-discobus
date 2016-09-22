@@ -73,6 +73,7 @@
 
 import crc from 'crc';
 import { Observable, Observer, ConnectableObservable } from 'rxjs';
+import EventEmitter from 'events';
 
 const BROADCAST_ADDRESS = 0;
 const RESPONSE_TIMEOUT = 20;
@@ -95,9 +96,10 @@ const FLAGS = {
 /**
  * Bus protocol service class
  */
-class DiscoBus {
+class DiscoBus extends EventEmitter {
 
   constructor() {
+    super();
 
     ////////////////////////////////////////////
     // Public members
@@ -205,11 +207,11 @@ class DiscoBus {
    *
    * @return {DiscoBus} Instance to this object, for chaining
    */
-  connectWith(port) {
+  connectWith(port) { 
     this.port = port;
 
     // Handle new data received on the bus
-    port.on('data', d => {
+    port.on('data', d => { 
       this._handleData(d);
     });
 
@@ -294,9 +296,8 @@ class DiscoBus {
       // Fill rest of array with zeros
       if (options.responseDefault.length < this._dataLen) {
         let start = options.responseDefault.length;
-        let end = this._dataLen - 1;
-        options.responseDefault[end] = 0;
-        options.responseDefault.fill(start, end, 0);
+        options.responseDefault[this._dataLen - 1] = 0;
+        options.responseDefault.fill(0, start);
       }
     }
 
@@ -457,6 +458,8 @@ class DiscoBus {
 
   /**
    * Finish the message and send the CRC bytes.
+   * This will be called automatically for response messags, and should not be
+   * called directly.
    *
    * @param {String} error (optional) An error to send to the message observer `error` handler.
    *
@@ -465,7 +468,8 @@ class DiscoBus {
   endMessage(error=null) {
 
     if (this._msgDone) {
-      throw new Error('There is no message to end. Call "startMessage()" first.');
+      this.emit('error', 'There is no message to end. Call "startMessage()" first.');
+      return;
     }
 
     // End addressing message
@@ -485,6 +489,11 @@ class DiscoBus {
         CMD.NULL, // NULL command
         0,        // length
       ]);
+    }
+    // Not all responses collected yet
+    else if(this._msgOptions.responseMsg && this._responseCount < this._fullDataLen) {
+      this.emit('error', 'Cannot end message until all responses are received.');
+      return;
     }
 
     // Send CRC
@@ -588,9 +597,14 @@ class DiscoBus {
     }
     // Response message
     else if (this._msgOptions.responseMsg) {
-      let index = this._getResponseNodeIndex();
-      let nodeMsg = this.messageResponse[index] || [];
-      let fill = this._msgOptions.responseDefault.slice(nodeMsg.length);
+      let buff = this.messageResponse;
+
+      if (this._msgOptions.batchMode) {
+        let index = this._getResponseNodeIndex();
+        buff = this.messageResponse[index] || [];
+      } 
+      
+      let fill = this._msgOptions.responseDefault.slice(buff.length);
 
       // Fill in missing node message data
       if (fill.length > 0) {
@@ -599,7 +613,7 @@ class DiscoBus {
 
         // Restart timer, if we're waiting on more responses
         if (this._responseCount < this._fullDataLen) {
-          this._serial.port.drain(() => {
+          this.port.drain(() => {
             this._restartResponseTimer();
           });
         }
@@ -619,22 +633,40 @@ class DiscoBus {
     if (this._msgDone) return;
 
     // Break it up across node arrays
-    for (let i = 0; i < data.length; i++) {
-      let n = this._getResponseNodeIndex();
-      let byte = data.readUInt8(i);
+    if (this._msgOptions.batchMode) {
+      for (let i = 0; i < data.length; i++) {
+        let buff;
+        let byte = data.readUInt8(i);
+        let n = this._getResponseNodeIndex();
 
-      if (n === -1) return; // Response buffer full)
-      this.messageResponse[n].push(byte);
+        if (n === -1) return; // Response buffer full)
+        buff = this.messageResponse[n];
+        buff.push(byte);
 
-      // Full node message, inform the observable
-      if (this.messageResponse[n].length === this._dataLen) {
-        this._messageObserver.next({
-          node: n,
-          data: this.messageResponse[n]
-        });
+        // Full node message, inform the observable
+        if (buff.length === this._dataLen) {
+          this._messageObserver.next({
+            node: n,
+            data: buff
+          });
+        }
+      
+        this._responseCount++;
+      } 
+
+    } else {
+      let lenLeft = this._fullDataLen - this.messageResponse.length;
+
+      if (lenLeft > 0) { 
+        data = data.slice(0, lenLeft);
+
+        for (let i = 0; i < data.length; i++) {
+          let byte = data.readUInt8(i);
+          this.messageResponse.push(byte);
+          this._messageObserver.next(byte);
+          this._responseCount++;
+        }
       }
-
-      this._responseCount++;
     }
   }
 
@@ -687,15 +719,11 @@ class DiscoBus {
 
     // Start timer once data has sent
     this.port.drain(() => {
-
       let timeout = (this._addressing) ? this.timeouts.addressing : this.timeouts.nodeResponse;
-      this._responseTimer = setTimeout(() => {
-        this._handleResponseTimeout();
-      }, timeout);
-
+      this._responseTimer = setTimeout(this._handleResponseTimeout.bind(this), timeout);
     });
   }
-
+ 
   /**
    * Resets the message response timeout timer.
    */
