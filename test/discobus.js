@@ -9,8 +9,9 @@ const sinonChai = require("sinon-chai");
 chai.use(sinonChai);
 
 const DiscoBusMocks = require('./mocks/discobus.mock.js');
-const DiscoBus = DiscoBusMocks.DiscoBus;
+const DiscoBusMaster = DiscoBusMocks.DiscoBus.DiscoBusMaster;
 const SerialPort = DiscoBusMocks.SerialPort;
+ 
 
 /**
  * General object construction
@@ -18,7 +19,7 @@ const SerialPort = DiscoBusMocks.SerialPort;
 describe('DiscoBus Object', function() {
   let bus;
   beforeEach(function(){
-    bus = new DiscoBus();
+    bus = new DiscoBusMaster();
   });
 
   it('creates an instance of DiscoBus Object', function() {
@@ -52,7 +53,7 @@ describe('DiscoBus Object', function() {
               .endMessage()
               .subscribe();
 
-    expect(ret).to.be.instanceOf(DiscoBus);
+    expect(ret).to.be.instanceOf(DiscoBusMaster);
   });
 
   it('removes port listeners when connecting to new port', function() {
@@ -77,7 +78,7 @@ describe('Messaging', function() {
   let errorEmitterSpy = sinon.spy();
 
   beforeEach(function(){
-    bus = new DiscoBus();
+    bus = new DiscoBusMaster();
     bus.connectWith(new SerialPort());
     bus.on('error', errorEmitterSpy);
 
@@ -96,7 +97,7 @@ describe('Messaging', function() {
   });
 
   it('throws an exception when no port has been connected', function() {
-    bus = new DiscoBus();
+    bus = new DiscoBusMaster();
     function startWrapper() {
       bus.startMessage(0x00, 1);
     }
@@ -345,7 +346,7 @@ describe('Addressing', function() {
   let errorEmitterSpy = sinon.spy();
 
   beforeEach(function(){
-    bus = new DiscoBus();
+    bus = new DiscoBusMaster();
     bus.connectWith(new SerialPort());
     bus.on('error', errorEmitterSpy);
 

@@ -96,7 +96,7 @@ const FLAGS = {
 /**
  * Bus protocol service class
  */
-class DiscoBus extends EventEmitter {
+class DiscoBusMaster extends EventEmitter {
 
   constructor() {
     super();
@@ -854,4 +854,4 @@ class BusSubscriberNextVal {
   }
 }
 
-module.exports = DiscoBus;
+module.exports.DiscoBusMaster = DiscoBusMaster;
