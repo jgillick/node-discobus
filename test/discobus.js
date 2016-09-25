@@ -103,6 +103,16 @@ describe('Messaging', function() {
     expect(startWrapper).to.throw(Error);
   });
 
+  it('throws error if batch mode has a destination address', function() {
+    function startWrapper() {
+      bus.startMessage(0x01, 1, {
+        batchMode: true,
+        destination: 1
+      });
+    }
+    expect(startWrapper).to.throw(Error);
+  });
+
   it('emits an error when trying send data to a message that doesn\'t exist', function() {
     bus.sendData([1,2,3]);
     bus.endMessage();
@@ -112,6 +122,29 @@ describe('Messaging', function() {
   it('emits an error when trying to end a message that doesn\'t exist', function() {
     bus.endMessage();
     expect(errorEmitterSpy).to.have.been.called;
+  });
+
+  it('emits error drain errors to subscriber', function(done) {
+    bus.startMessage(0x01, 1)
+    .subscribe(null, () => {
+      expect(errorEmitterSpy).to.have.been.called;
+      done();
+    });
+    bus.port.drain = function(cb) {
+      cb('Error thing');
+    }
+    bus.endMessage();
+  });
+
+  it('emits error when sending too much data', function() {
+    bus.startMessage(0x09, 1)
+    .subscribe(null, (err) => {
+      expect(errorEmitterSpy).to.have.been.called;
+      done();
+    });
+
+    // Send too many bytes
+    bus.port.receiveData(Buffer.from([1, 2, 3, 4]));
   });
 
   it('returns current command', function() {
@@ -159,6 +192,7 @@ describe('Messaging', function() {
     let completeSpy = sinon.spy();
 
     bus.startMessage(0x09, 2, {
+      destination: 1,
       responseMsg: true
     });
 
@@ -176,9 +210,11 @@ describe('Messaging', function() {
    * Response messages
    */
   describe('Response message', function() {
+
     it('gets responses from nodes', function(done) {
       bus.startMessage(0x09, 3, {
-        responseMsg: true
+        responseMsg: true,
+        destination: 1
       })
       .subscribe(null, null, () => {
         expect(bus.messageResponse).to.deep.equal([1, 2, 3]);
@@ -192,7 +228,8 @@ describe('Messaging', function() {
     it('creates default response fill data', function() {
     // When no `responseDefault` is set in message options
       bus.startMessage(0x09, 5, {
-        responseMsg: true
+        responseMsg: true,
+        destination: 1
       });
       expect(bus._msgOptions.responseDefault).to.deep.equal([0, 0, 0, 0, 0]);
     });
@@ -201,6 +238,7 @@ describe('Messaging', function() {
     // When length of `responseDefault` does not match the passed message length
       bus.startMessage(0x09, 5, {
         responseMsg: true,
+        destination: 1,
         responseDefault: [1, 2, 3]
       });
       expect(bus._msgOptions.responseDefault).to.deep.equal([1, 2, 3, 0, 0]);
@@ -208,7 +246,8 @@ describe('Messaging', function() {
 
     it('inserts default response when timeout occurs', function(done) {
       bus.startMessage(0x09, 5, {
-        responseMsg: true
+        responseMsg: true,
+        destination: 1
       });
 
       bus.subscribe(null, null, () => {
@@ -220,7 +259,8 @@ describe('Messaging', function() {
 
     it('inserts partial default response when timeout occurs', function(done) {
       bus.startMessage(0x09, 5, {
-        responseMsg: true
+        responseMsg: true,
+        destination: 1
       });
 
       // Send a few bytes
@@ -234,7 +274,8 @@ describe('Messaging', function() {
 
     it('emits an error when prematurely ending a message', function() {
       bus.startMessage(0x09, 5, {
-        responseMsg: true
+        responseMsg: true,
+        destination: 1
       });
       bus.endMessage();
       expect(errorEmitterSpy).to.have.been.called;
@@ -245,6 +286,14 @@ describe('Messaging', function() {
    * Batch Messages
    */
   describe('Batch response message', function() {
+
+    it('implies batch response mode, if asking for a broadcast response', function() {
+      bus.startMessage(0x09, 2, {
+        destination: 0,
+        responseMsg: true
+      });
+      expect(bus._msgOptions.batchMode).to.be.true;
+    });
 
     it('sends a response batch message header', function() {
       let expectedData = [0xFF, 0xFF, 0x03, 0x00, 0x09, 0x05, 0x02];
@@ -292,19 +341,135 @@ describe('Messaging', function() {
  * Addressing
  */
 describe('Addressing', function() {
+  let bus;
+  let errorEmitterSpy = sinon.spy();
 
-  it('enables outgoing daisy line');
+  beforeEach(function(){
+    bus = new DiscoBus();
+    bus.connectWith(new SerialPort());
+    bus.on('error', errorEmitterSpy);
 
-  it('confirms valid address');
+    bus.timeouts.addressing = 1;
+    bus.timeouts.nodeResponse = 1;
+  });
 
-  it('corrects invalid address');
+  it('toggles daisy line before and after addressing', function() {
+    var daisySpy = sinon.spy(bus, 'setDaisyLine');
+    var portSpy = sinon.spy(bus.port, 'set');
 
-  it('times out after not receiving an address in x milliseconds');
+    bus.startAddressing()
+    .subscribe(null, null, () => {
+      expect(portSpy).to.have.been.calledWith({ rts:false });  
+    });
+    expect(daisySpy).to.have.been.called;
+    expect(portSpy).to.have.been.calledWith({ rts:true });
+  });
 
-  it('cancels addressing on too many invalid addresses');
+  it('confirms valid address', function() {
+    bus.startAddressing();
 
-  it('ends addressing with two 0xFF and a NULL message');
+    let addr = 1;
+    bus.port.buffer = [];
+    bus.port.receiveData(Buffer.from([addr]));
+    expect(bus.port.buffer).to.deep.equal([addr]);
 
-  it('resets daisy line after addressing');
-  
+    addr++
+    bus.port.buffer = [];
+    bus.port.receiveData(Buffer.from([addr]));
+    expect(bus.port.buffer).to.deep.equal([addr]);
+  });
+
+  it('corrects invalid address', function() {
+    bus.startAddressing();
+
+    // Incorrect
+    let addr = 5;
+    bus.port.buffer = [];
+    bus.port.receiveData(Buffer.from([addr]));
+    expect(bus.port.buffer).to.deep.equal([0, 0]);
+
+    // Correct
+    addr = 1;
+    bus.port.buffer = [];
+    bus.port.receiveData(Buffer.from([addr]));
+    expect(bus.port.buffer).to.deep.equal([1]);
+
+    // Incorrect
+    addr = 10;
+    bus.port.buffer = [];
+    bus.port.receiveData(Buffer.from([addr]));
+    expect(bus.port.buffer).to.deep.equal([0, 1]);
+  });
+
+  it('times out after not receiving an address in x milliseconds', function(done) {
+    let lastNodeTime;
+
+    bus.timeouts.addressing = 500;
+    bus.startAddressing()
+    .subscribe(null, null, () => {
+      expect(bus.nodeNum).to.be.equal(1);
+      expect(Date.now() - lastNodeTime).to.be.at.least(bus.timeouts.addressing);
+      done();
+    });
+
+    // Register 1 node
+    bus.port.receiveData(Buffer.from([1]));
+    lastNodeTime = Date.now();
+  });
+
+  it('passes new node address the subscribers next callback', function(done) {
+    let lastAddr = 1;
+
+    bus.startAddressing()
+    .subscribe((n) => {
+      expect(n.value).to.be.equal(lastAddr);
+    }, null, done);
+
+    for (let i = 0; i < 2; i++) {
+      bus.port.receiveData(Buffer.from([lastAddr]));
+      lastAddr++;
+    }
+  });
+
+  it('sends an error to subscriber for invalid address', function(done){
+    bus.startAddressing()
+    .subscribe((n) => {
+      expect(n.type).to.be.equal('error');
+    }, null, done);
+
+    bus.port.receiveData(Buffer.from([5]));
+    expect(errorEmitterSpy).to.have.been.called;
+  });
+
+  it('cancels addressing on too many invalid addresses', function(done) {
+    let tries,
+        finished = false;
+
+    bus.startAddressing()
+    .subscribe(null, (err) => {
+      expect(tries).to.be.equal(10);
+      done();
+    });
+
+    for (tries = 0; !finished && tries < 100; tries++) {
+      bus.port.receiveData(Buffer.from([5]));
+    }
+  });
+
+  it('ends addressing with two 0xFF and a NULL message', function(done) {
+    bus.startAddressing()
+    .subscribe(null, null, () => {
+      expect(bus.port.buffer).to.deep.equal([
+        0xFF, 0xFF,    // end of addressing 
+        0, 0, 0xFF, 0, // null message header
+        212, 65]       // CRC
+      );
+      done();
+    });
+
+    // Register 1 node
+    bus.port.receiveData(Buffer.from([1]));
+    bus.port.buffer = [];
+  });
+
 });

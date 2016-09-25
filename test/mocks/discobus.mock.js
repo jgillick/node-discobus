@@ -4,6 +4,8 @@ const sinon = require('sinon');
 const EventEmitter = require('events');
 const proxyquire =  require('proxyquire');
 
+require('source-map-support').install();
+
 // Stub out SerialPort module
 class SerialPortMock extends EventEmitter { 
   constructor (dev, options) {

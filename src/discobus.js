@@ -285,6 +285,16 @@ class DiscoBus extends EventEmitter {
 
     options = Object.assign({}, defaultOptions, options);
 
+    // If we're requesting a response from all nodes, we're a batch message
+    if (options.responseMsg && options.destination === BROADCAST_ADDRESS && options.batchMode === false) {
+      options.batchMode = true; 
+    }
+
+    // Can't pass a destination address in batch mode
+    if (options.batchMode && options.destination !== BROADCAST_ADDRESS) {
+      throw new Error('Cannot give a message a destination and set batchMode to true.')
+    }
+
     this._msgDone = false;
     this._crc = [];
     this._msgOptions = options;
@@ -375,7 +385,6 @@ class DiscoBus extends EventEmitter {
     this.nodeNum = startFrom;
     this.messageResponse = [];
 
-    this._msgDone = false;
     this._crc = [];
     this._msgOptions = {};
     this._msgCommand = CMD.ADDRESS;
@@ -451,7 +460,7 @@ class DiscoBus extends EventEmitter {
   sendData(data) {
     if (this._msgDone) {
       this.emit('error', 'There is no message to put data in. Call "startMessage()" first.');
-      return;
+      return this;
     }
 
     if (typeof data.length === 'undefined') {
@@ -461,8 +470,8 @@ class DiscoBus extends EventEmitter {
     this._sentLen += data.length;
 
     if (this._sentLen > this._fullDataLen) {
-      this._messageObserver.error('Cannot send more data than the defined length ('+ this._fullDataLen +')');
-      return;
+      this.emit('error', `Cannot send more data than the defined length (${this._fullDataLen})`);
+      return this;
     }
 
     this._sendBytes(data);
@@ -483,7 +492,7 @@ class DiscoBus extends EventEmitter {
 
     if (this._msgDone) {
       this.emit('error', 'There is no message to end. Call "startMessage()" first.');
-      return;
+      return this;
     }
 
 
@@ -509,9 +518,9 @@ class DiscoBus extends EventEmitter {
     // Can't end response message until all responses have been received
     if(this._msgOptions.responseMsg && this._responseCount < this._fullDataLen) {
       this.emit('error', 'Cannot end the message until all responses have been received.');
-      return;
+      return this;
     }
-    
+
     // Fill in missing data 
     if (!this._msgOptions.responseMsg && this._sentLen < this._fullDataLen) {
       let missingLen = this._fullDataLen - this._sentLen;
@@ -532,13 +541,16 @@ class DiscoBus extends EventEmitter {
     if (this._messageObserver) {
 
       if (error) {
+        this.emit('error', error);
         this._messageObserver.error(error);
-        return;
+        return this;
       }
 
       this.port.drain( (err) => {
         if (err) {
-          this._messageObserver.error(err);
+          let errMsg = `Error sending data: ${err}`;
+          this.emit('error', errMsg);
+          this._messageObserver.error(errMsg);
         }
         this._messageObserver.complete();
       });
@@ -575,13 +587,18 @@ class DiscoBus extends EventEmitter {
     // Address responses
     if (this._addressing) {
       let addr = data.readUInt8(data.length - 1); // We only care about the last byte received
+      let expectedAddr = this.nodeNum + 1;
 
       // Verify it's 1 larger than the last address
-      if (addr == this.nodeNum + 1) {
+      if (addr == expectedAddr) {
         this.nodeNum++;
         this._addressCorrections = 0;
         this._sendBytes(this.nodeNum); // confirm address
-        this._messageObserver.next(this.nodeNum);
+        this._messageObserver.next(new BusSubscriberNextVal(
+          'addressing', 
+          this.nodeNum, 
+          this.nodeNum
+        ));
       }
       // Invalid address
       else {
@@ -593,6 +610,10 @@ class DiscoBus extends EventEmitter {
         }
         // Address correction: send 0x00 followed by last valid address
         else {
+          let errMsg =`Invalid address ${addr}. Expecting: ${expectedAddr}`; 
+          this._messageObserver.next(new BusSubscriberNextVal('error', errMsg));
+          this.emit('error', errMsg);
+          
           this._sendBytes(0x00);
           this._sendBytes(this.nodeNum);
         }
@@ -679,10 +700,11 @@ class DiscoBus extends EventEmitter {
 
         // Full node message, inform the observable
         if (buff.length === this._dataLen) {
-          this._messageObserver.next({
-            node: n,
-            data: buff
-          });
+          this._messageObserver.next(new BusSubscriberNextVal(
+            "response",
+            buff,
+            n
+          ));
         }
 
         this._responseCount++;
@@ -697,7 +719,11 @@ class DiscoBus extends EventEmitter {
         for (let i = 0; i < data.length; i++) {
           let byte = data.readUInt8(i);
           this.messageResponse.push(byte);
-          this._messageObserver.next(byte);
+          this._messageObserver.next(new BusSubscriberNextVal(
+            "response",
+            byte,
+            this._msgOptions.destination
+          ));
           this._responseCount++;
         }
       }
@@ -733,12 +759,6 @@ class DiscoBus extends EventEmitter {
         this.messageResponse[i] = [];
       }
       return i;
-    }
-    else {
-      // If all data has been received, return -1
-      if (this.messageResponse[0] && this.messageResponse[0].length >= this._dataLen) {
-        return -1;
-      }
     }
     return 0;
   }
@@ -814,6 +834,23 @@ class DiscoBus extends EventEmitter {
         (value >> 8) & 0xFF,
         value & 0xFF,
     ];
+  }
+}
+
+/**
+ * An object that descrives the "next" data passed to subscribers.
+ */
+class BusSubscriberNextVal {
+
+  /**
+   * @param {String} type The type of value ('response', 'addressing', 'error')
+   * @param {Any} value The value
+   * @param {number} nodeAddr The node address associated with this value.  
+   */
+  constructor(type, value, nodeAddr=-1) {
+    this.type = type;
+    this.value = value;
+    this.node = nodeAddr;
   }
 }
 
