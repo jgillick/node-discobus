@@ -23,15 +23,15 @@ You can read more about the Disco Bus [protocol spec here](https://github.com/jg
    * [Batch response messages](#batch-response-messages)
 
  * [Methods](#methods)
-   * [DiscoBusMaster](#api-constructor)
-   * [connectTo](#api-connectTo)
-   * [connectWith](#api-connectWith)
-   * [startMessage](#api-startMessage)
-   * [startAddressing](#api-startAddressing)
-   * [subscribe](#api-subscribe)
-   * [sendData](#api-sendData)
-   * [endMessage](#api-endMessage)
-   * [setDaisyLine](#api-setDaisyLine)
+   * [DiscoBusMaster _constructor_](#discobusmaster-constructor)
+   * [connectTo](#connectto-port-options-callback)
+   * [connectWith](#connectwith-port)
+   * [startMessage](#startmessage-command-length-options)
+   * [startAddressing](#startaddressing-startfrom)
+   * [subscribe](#subscribe-nextcallback-errorcallback-completecallback)
+   * [sendData](#senddata-data)
+   * [endMessage](#endmessage)
+   * [setDaisyLine](#setdaisyline-enabled)
  * [Properties](#properties)
 
 ***
@@ -182,22 +182,26 @@ master.startMessage(CMD_SENSORS, 2, {
 Creates a Disco Bus Master device.
 
 
-### connectTo(port, options, callback)
+### connectTo (port, options, callback)
 
 Connect to a serial device via [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport)
 
-The parameters are the same as passed to the [serialport contructor](https://github.com/EmergingTechnologyAdvisors/node-serialport#new_module_serialport--SerialPort_new)
+**Parameters:**
 
- * **port**: A string to the serial port to open.
- * **options**: Port configuration options. ([options list](https://github.com/EmergingTechnologyAdvisors/node-serialport#module_serialport--SerialPort..openOptions))
- * **openCallback**: Called when a connection has been opened.
+These are the same as passed to the [serialport contructor](https://github.com/EmergingTechnologyAdvisors/node-serialport#new_module_serialport--SerialPort_new)
+
+ * port - A string to the serial port to open.
+ * options - Port configuration options. ([options list](https://github.com/EmergingTechnologyAdvisors/node-serialport#module_serialport--SerialPort..openOptions))
+ * openCallback - Called when a connection has been opened.
 
 **Returns**: The DiscoBusMaster instance. 
 
 
-### connectWith(port)
+### connectWith (port)
 
 Connect with an existing open port connection. 
+
+**Parameters:**
 
  * **port**: A [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport) compatible port object.
 
@@ -216,6 +220,8 @@ port:
 
 Start a new message.
 
+**Parameters:**
+
  * **command**: The message command.
  * **length**: The length of the data (per node, for batchMode) we're planning to send.
  * **options**: Message options:
@@ -231,6 +237,8 @@ Start a new message.
 
 Start dynamically addressing all nodes.
 
+**Parameters:**
+
   * **startFrom**: (optional) The first address to start from.
 
 **Returns**: The DiscoBusMaster instance.
@@ -240,6 +248,8 @@ Start dynamically addressing all nodes.
 
 Subscribe to the current message observer stream. (this is a wrapper to `messageSubscription.subscribe`)
 
+**Parameters:**
+
    * **nextCallback**: Called with the next value (received data or address)
    * **errorCallback**: Called when there is an error
    * **completeCallback**: Called when the message is complete.
@@ -247,16 +257,18 @@ Subscribe to the current message observer stream. (this is a wrapper to `message
 **Returns**: The DiscoBusMaster instance.
 
 
-### sendData(data)
+### sendData (data)
 
 Write bytes to the data section of the message.
+
+**Parameters:**
 
   * **data**: An array of bytes to send.
 
 **Returns**: The DiscoBusMaster instance.
 
 
-### endMessage()
+### endMessage ()
 
 Finish the message and send the CRC bytes. This will be called automatically for response messages, 
 and should not be called directly, in that case.
@@ -264,17 +276,19 @@ and should not be called directly, in that case.
 **Returns**: The DiscoBusMaster instance.
 
 
-### setDaisyLine(enabled)
+### setDaisyLine (enabled)
 
 Set's the outgoing daisy line to enabled or disabled, by toggling the port's RTS line.
 Override this method to use your own implementation.
+
+**Parameters**
 
   * **enabled**: `true` to set the daisy line to enabled.
 
 **Returns**: A promise which resolves when the daisy line has been set.
 
 
- ## Properties
+## Properties
 
    * **nodeNum**: Number of nodes in the bus.
    * **messageResponse**: The response data from the current/last message.
