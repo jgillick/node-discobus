@@ -120,7 +120,8 @@ const CMD_SENSORS = 0x06
 master.startMessage(CMD_SENSORS, 2, { 
     destination: 0x09,
     responseMsg: true
-  }).subscribe(
+  })
+  .subscribe(
     null,
     (err) => { console.error(err); },
     () => {
@@ -166,7 +167,8 @@ const CMD_SENSORS = 0x06
 master.startMessage(CMD_SENSORS, 2, { 
     responseMsg: true,
     batchMode: true
-  }).subscribe(
+  })
+  .subscribe(
     null,
     (err) => { console.error(err); },
     () => {
