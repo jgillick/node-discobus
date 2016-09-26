@@ -24,6 +24,8 @@ class SerialPortMock extends EventEmitter {
   drain (cb) {
     cb();
   }
+
+  // Send data that shoudl appear to be received from a slave node
   receiveData(data) {
     this.emit('data', data);
   }

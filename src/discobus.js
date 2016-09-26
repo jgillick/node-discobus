@@ -427,8 +427,8 @@ class DiscoBusMaster extends EventEmitter {
 
   /**
    * Finish the message and send the CRC bytes.
-   * This will be called automatically for response messags, and should not be
-   * called directly.
+   * This will be called automatically for response messages, and should not be
+   * called directly, in that case.
    *
    * @param {String} error (optional) An error to send to the message observer `error` handler.
    *
