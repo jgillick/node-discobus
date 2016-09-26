@@ -31,7 +31,9 @@ const FLAGS = {
 };
 
 /**
- * Bus protocol service class
+ * Creates a Disco Bus Master device.
+ * @class
+ * @emits DiscoBusMaster#error
  */
 class DiscoBusMaster extends EventEmitter {
 
@@ -123,7 +125,7 @@ class DiscoBusMaster extends EventEmitter {
    *                            https://github.com/EmergingTechnologyAdvisors/node-serialport/blob/4.0.1/README.md#usage
    * @param {Function} callback A callback called after the port has been opened (or returns an error)
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   connectTo(port, options, callback) {
     const SerialPort = require("serialport");
@@ -142,7 +144,7 @@ class DiscoBusMaster extends EventEmitter {
    *    + port.write(data)
    *    + port.drain()
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   connectWith(port) {
 
@@ -189,14 +191,15 @@ class DiscoBusMaster extends EventEmitter {
    * @param {number} length The length of the data (per node, for batchMode) we're planning to send.
    * @param {Object} options Other message options (see section below.)
    *
-   * MESSAGE OPTIONS
+   * Message Options
+   * ---------------
    *  + destination {number}       - The node we're sending this message to (default: broadcast to all)
    *  + batchMode   {boolean}      - True if we're sending data for each node in this one message.
    *                                 (only for broadcast messages)
    *  + responseMsg {boolean}      - True if we are asking nodes for a response.
    *  + responseDefault {number[]} - If a node doesn't response, this is the default response.
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   startMessage (command, length, options={}) {
 
@@ -305,7 +308,7 @@ class DiscoBusMaster extends EventEmitter {
    *
    * @param {number} startFrom (optional) The address to start from.
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   startAddressing (startFrom=0) {
 
@@ -362,7 +365,7 @@ class DiscoBusMaster extends EventEmitter {
    * @param {Function} errorCallback    Called when there is an error
    * @param {Function} completeCallback Called when the message is complete.
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   subscribe (nextCallback, errorCallback, completeCallback) {
     this.messageSubscription.subscribe(nextCallback, errorCallback, completeCallback);
@@ -380,7 +383,7 @@ class DiscoBusMaster extends EventEmitter {
   setDaisyLine(enabled) {
     return new Promise ( (resolve, reject) => {
       if (!this.port) {
-        reject('There is no open connection');
+        reject('There is no open connection. First connect to a port with connectTo() or connectWith()');
       }
 
       this.port.set({rts:enabled}, err => {
@@ -398,7 +401,7 @@ class DiscoBusMaster extends EventEmitter {
    *
    * @param {number[]} data An array of bytes.
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   sendData(data) {
     if (this._msgDone) {
@@ -429,7 +432,7 @@ class DiscoBusMaster extends EventEmitter {
    *
    * @param {String} error (optional) An error to send to the message observer `error` handler.
    *
-   * @return {DiscoBus} Instance to this object, for chaining
+   * @return {DiscoBusMaster} Instance to this object, for chaining
    */
   endMessage(error=null) {
 
