@@ -30,7 +30,7 @@ You can read more about the Disco Bus [protocol spec here](https://github.com/jg
    * [startAddressing](#startaddressing-startfrom)
    * [subscribe](#subscribe-nextcallback-errorcallback-completecallback)
    * [sendData](#senddata-data)
-   * [endMessage](#endmessage)
+   * [endMessage](#endmessage-)
    * [setDaisyLine](#setdaisyline-enabled)
  * [Properties](#properties)
 
@@ -175,18 +175,18 @@ master.startMessage(CMD_SENSORS, 2, {
 ***
 
 
-### Methods
+# Methods
 
-### DiscoBusMaster() _constructor_ 
+## DiscoBusMaster() _constructor_ 
 
 Creates a Disco Bus Master device.
 
 
-### connectTo (port, options, callback)
+## connectTo (port, options, callback)
 
 Connect to a serial device via [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport)
 
-**Parameters:**
+_**Parameters:**_
 
 These are the same as passed to the [serialport contructor](https://github.com/EmergingTechnologyAdvisors/node-serialport#new_module_serialport--SerialPort_new)
 
@@ -197,7 +197,7 @@ These are the same as passed to the [serialport contructor](https://github.com/E
 **Returns**: The DiscoBusMaster instance. 
 
 
-### connectWith (port)
+## connectWith (port)
 
 Connect with an existing open port connection. 
 
@@ -216,7 +216,7 @@ port:
 **Returns**: The DiscoBusMaster instance.
 
 
-### startMessage (command, length, options)
+## startMessage (command, length, options)
 
 Start a new message.
 
@@ -233,7 +233,7 @@ _**Parameters**_
 **Returns**: The DiscoBusMaster instance.
 
 
-### startAddressing (startFrom)
+## startAddressing (startFrom)
 
 Start dynamically addressing all nodes.
 
@@ -244,7 +244,7 @@ _**Parameters**_
 **Returns**: The DiscoBusMaster instance.
 
 
-### subscribe (nextCallback, errorCallback, completeCallback)
+## subscribe (nextCallback, errorCallback, completeCallback)
 
 Subscribe to the current message observer stream. (this is a wrapper to `messageSubscription.subscribe`)
 
@@ -257,7 +257,7 @@ _**Parameters**_
 **Returns**: The DiscoBusMaster instance.
 
 
-### sendData (data)
+## sendData (data)
 
 Write bytes to the data section of the message.
 
@@ -268,7 +268,7 @@ _**Parameters**_
 **Returns**: The DiscoBusMaster instance.
 
 
-### endMessage ()
+## endMessage ()
 
 Finish the message and send the CRC bytes. This will be called automatically for response messages, 
 and should not be called directly, in that case.
@@ -276,7 +276,7 @@ and should not be called directly, in that case.
 **Returns**: The DiscoBusMaster instance.
 
 
-### setDaisyLine (enabled)
+## setDaisyLine (enabled)
 
 Set's the outgoing daisy line to enabled or disabled, by toggling the port's RTS line.
 Override this method to use your own implementation.
@@ -288,7 +288,7 @@ _**Parameters**_
 **Returns**: A promise which resolves when the daisy line has been set.
 
 
-## Properties
+# Properties
 
    * **nodeNum**: Number of nodes in the bus.
    * **messageResponse**: The response data from the current/last message.

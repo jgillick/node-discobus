@@ -73,8 +73,8 @@ class DiscoBusMaster extends EventEmitter {
     this.timeouts = {
 
       /**
-       * A node should respond in this many milliseconds to a response message,
-       * otherwise, default values will be used instead.
+       * Number of milliseconds to wait for a node's response.
+       * After this timeout, default values will be used instead.
        *
        * @type {int}
        */

@@ -11,7 +11,9 @@ declare module 'discobus' {
 	import { Observable, ConnectableObservable } from 'rxjs';
 
 	/**
-	 * Bus protocol service class
+	 * Creates a Disco Bus Master device.
+	 * @class
+	 * @emits DiscoBusMaster#error
 	 */
 	export class DiscoBusMaster {
 
