@@ -10,7 +10,7 @@ arduino devices.
 This library implements the master device side of the communication protocol.
 You can read more about the Disco Bus [protocol spec here](https://github.com/jgillick/Disco-Bus-Protocol)
 
-[![Bus Topology](bus-topology.png)]
+![Bus Topology](bus-topology.png)
 
 ***
 
@@ -177,12 +177,12 @@ master.startMessage(CMD_SENSORS, 2, {
 
 ### Methods
 
-### DiscoBusMaster() _constructor_ {#api-constructor}
+### DiscoBusMaster() _constructor_ 
 
 Creates a Disco Bus Master device.
 
 
-### connectTo(port:string, options?: {}, callback?: Function) {#api-connectTo}
+### connectTo(port, options, callback)
 
 Connect to a serial device via [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport)
 
@@ -195,7 +195,7 @@ The parameters are the same as passed to the [serialport contructor](https://git
 **Returns**: The DiscoBusMaster instance. 
 
 
-### connectWith(port) {#api-connectWith}
+### connectWith(port)
 
 Connect with an existing open port connection. 
 
@@ -212,7 +212,7 @@ port:
 **Returns**: The DiscoBusMaster instance.
 
 
-### startMessage (command, length, options) {#api-startMessage}
+### startMessage (command, length, options)
 
 Start a new message.
 
@@ -227,7 +227,7 @@ Start a new message.
 **Returns**: The DiscoBusMaster instance.
 
 
-### startAddressing (startFrom) {#api-startAddressing}
+### startAddressing (startFrom)
 
 Start dynamically addressing all nodes.
 
@@ -236,7 +236,7 @@ Start dynamically addressing all nodes.
 **Returns**: The DiscoBusMaster instance.
 
 
-### subscribe (nextCallback, errorCallback, completeCallback) {#api-subscribe}
+### subscribe (nextCallback, errorCallback, completeCallback)
 
 Subscribe to the current message observer stream. (this is a wrapper to `messageSubscription.subscribe`)
 
@@ -247,7 +247,7 @@ Subscribe to the current message observer stream. (this is a wrapper to `message
 **Returns**: The DiscoBusMaster instance.
 
 
-### sendData(data) {#api-sendData}
+### sendData(data)
 
 Write bytes to the data section of the message.
 
@@ -256,7 +256,7 @@ Write bytes to the data section of the message.
 **Returns**: The DiscoBusMaster instance.
 
 
-### endMessage() {#api-endMessage}
+### endMessage()
 
 Finish the message and send the CRC bytes. This will be called automatically for response messages, 
 and should not be called directly, in that case.
@@ -264,7 +264,7 @@ and should not be called directly, in that case.
 **Returns**: The DiscoBusMaster instance.
 
 
-### setDaisyLine(enabled) {#api-setDaisyLine}
+### setDaisyLine(enabled)
 
 Set's the outgoing daisy line to enabled or disabled, by toggling the port's RTS line.
 Override this method to use your own implementation.
