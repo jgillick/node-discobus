@@ -64,7 +64,7 @@ master.startMessage(CMD_RGB, 3, { destination: 0x05 })
 ```
 
 
-## Use an open serial port
+### Use an open serial port
 
 You can use an existing serial port with your master device:
 
