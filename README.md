@@ -96,9 +96,9 @@ master.on('error', console.error);
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 bus.startAddressing()
-  .subscribe(null, null, () => {
-    console.log('Found nodes:', master.nodeNum);
-  });
+.subscribe(null, null, () => {
+  console.log('Found nodes:', master.nodeNum);
+});
 
 ```
 
@@ -118,16 +118,16 @@ master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 // Get a 2-byte response from node 0x09
 const CMD_SENSORS = 0x06
 master.startMessage(CMD_SENSORS, 2, { 
-    destination: 0x09,
-    responseMsg: true
-  })
-  .subscribe(
-    null,
-    (err) => { console.error(err); },
-    () => {
-      console.log('Response', master.messageResponse);
-    }
-  );
+  destination: 0x09,
+  responseMsg: true
+})
+.subscribe(
+  null,
+  (err) => { console.error(err); },
+  () => {
+    console.log('Response', master.messageResponse);
+  }
+);
 ```
 
 ### Batch messages
@@ -145,9 +145,9 @@ master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 // Send the message to all nodes 
 const CMD_RGB = 0x09
 master.startMessage(CMD_RGB, 3, { batchMode: true })
-  .sendData([ 0x00, 0x66, 0x20 ]) // to node 1
-  .sendData([ 0x00, 0x66, 0x20 ]) // to node 2
-  .endMessage();
+.sendData([ 0x00, 0x66, 0x20 ]) // to node 1
+.sendData([ 0x00, 0x66, 0x20 ]) // to node 2
+.endMessage();
 ```
 
 ### Batch response messages
@@ -165,17 +165,17 @@ master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 // Send the message to all nodes 
 const CMD_SENSORS = 0x06
 master.startMessage(CMD_SENSORS, 2, { 
-    responseMsg: true,
-    batchMode: true
-  })
-  .subscribe(
-    null,
-    (err) => { console.error(err); },
-    () => {
-      console.log('Node 1', master.messageResponse[0]);
-      console.log('Node 2', master.messageResponse[1]); 
-    }
-  );
+  responseMsg: true,
+  batchMode: true
+})
+.subscribe(
+  null,
+  (err) => { console.error(err); },
+  () => {
+    console.log('Node 1', master.messageResponse[0]);
+    console.log('Node 2', master.messageResponse[1]); 
+  }
+);
 ```
 
 
