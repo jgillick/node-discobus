@@ -48,14 +48,15 @@ In this case we're sending RGB color values.
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
 // Create master device and connect it to a serial port  
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
+master.on('error', console.error);
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 // Send a message 
 //  + command: 0x09 (CMD_RGB)
 //  + length: 3
 //  + destination node address: 0x05
-//  + message data: 0x01, 0x02
+//  + message data: 0x00, 0x66, 0x20
 const CMD_RGB = 0x09
 master.startMessage(CMD_RGB, 3, { destination: 0x05 })
   .sendData([0x00, 0x66, 0x20])
@@ -72,10 +73,11 @@ const DiscoBusMaster = require('discobus').DiscoBusMaster;
 const SerialPort = require("serialport");
 
 // Open serial port
-let port = new SerialPort("/dev/tty-usbserial1", {baudRate: 9600});
+var port = new SerialPort("/dev/tty-usbserial1", {baudRate: 9600});
 
 // Connect the bus with this port
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
+master.on('error', console.error);
 master.connectWith(port);
 ```
 
@@ -89,7 +91,8 @@ are broadcast messages (`destination: 0`).
 ```js
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
+master.on('error', console.error);
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 bus.startAddressing()
@@ -108,7 +111,8 @@ Asks node 9 to send a 3-byte response for message command `0x06`.
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
 // Create master device and connect it to a serial port  
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
+master.on('error', console.error);
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 // Get a 2-byte response from node 0x09
@@ -134,7 +138,7 @@ using a batch message.
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
 // Create master device and connect it to a serial port  
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 // Send the message to all nodes 
@@ -154,7 +158,7 @@ a batch response message.
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
 // Create master device and connect it to a serial port  
-let master = new DiscoBusMaster();
+var master = new DiscoBusMaster();
 master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 
 // Send the message to all nodes 
