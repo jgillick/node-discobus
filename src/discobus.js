@@ -170,6 +170,9 @@ class DiscoBusMaster extends EventEmitter {
     // Add handlers
     port.on('data', this.__onData);
     port.on('open', this.__onOpen);
+    if (port.isOpen) {
+      this.__onOpen();
+    } 
 
     this.port = port;
   }
@@ -252,7 +255,7 @@ class DiscoBusMaster extends EventEmitter {
 
     // Default response values
     if (options.responseMsg) {
-      if (!options.responseDefault) {
+      if (!Array.isArray(options.responseDefault)) {
         options.responseDefault = [];
       }
       options.responseDefault.splice(this._dataLen); // cut down to the right size
@@ -389,6 +392,7 @@ class DiscoBusMaster extends EventEmitter {
 
       this.port.set({rts:enabled}, err => {
         if (err) {
+          this.emit('error', `Error setting daisy line: ${err}`);
           reject(err);
         } else {
           resolve();

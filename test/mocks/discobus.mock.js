@@ -16,6 +16,8 @@ class SerialPortMock extends EventEmitter {
 
     sinon.spy(this, 'write');
     sinon.spy(this, 'on');
+
+    this.emit('open');
   }
 
   write(data) {
@@ -29,6 +31,9 @@ class SerialPortMock extends EventEmitter {
   receiveData(data) {
     this.emit('data', data);
   }
+}
+SerialPortMock.prototype.set = function(config, cb) {
+  cb();
 }
 
 // Module updates

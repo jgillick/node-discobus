@@ -45,6 +45,25 @@ describe('DiscoBus Object', function() {
     expect(port.on).to.be.calledWith('open');
   });
 
+  it('removes port listeners when connecting to new port', function() {
+    let port1 = new SerialPort();
+    let port2 = new SerialPort();
+    let removeSpy = sinon.spy(port1, 'removeListener');
+
+    bus.connectWith(port1);
+    bus.connectWith(port2);
+
+    expect(removeSpy).to.have.been.called;
+    expect(port1.listenerCount('open')).to.be.equal(0);
+    expect(port1.listenerCount('data')).to.be.equal(0);
+  });
+
+  it('disables daisy line when connecting to port', function() {
+    let daisySpy = sinon.spy(bus, 'setDaisyLine');
+    bus.connectTo('/dev/port', {baudRate: 9600});
+    expect(daisySpy).to.have.been.called;
+  });
+
   it('supports chaining methods', function() {
     let port = new SerialPort();
     bus.connectWith(port);
@@ -57,17 +76,30 @@ describe('DiscoBus Object', function() {
     expect(ret).to.be.instanceOf(DiscoBusMaster);
   });
 
-  it('removes port listeners when connecting to new port', function() {
-    let port1 = new SerialPort();
-    let port2 = new SerialPort();
-    let removeSpy = sinon.spy(port1, 'removeListener');
+  it('sets daisy lines via port', function() {
+    bus.connectTo('/dev/port', {baudRate: 9600});
 
-    bus.connectWith(port1);
-    bus.connectWith(port2);
+    let portSpy = sinon.spy(bus.port, 'set');
 
-    expect(removeSpy).to.have.been.called;
-    expect(port1.listenerCount('open')).to.be.equal(0);
-    expect(port1.listenerCount('data')).to.be.equal(0);
+    bus.setDaisyLine(false);
+    expect(portSpy).to.have.been.calledWith({ rts:false });
+
+    bus.setDaisyLine(true);
+    expect(portSpy).to.have.been.calledWith({ rts:false });
+  });
+
+  it('emits error from the daisy line', function() {
+    let errorEmitterSpy = sinon.spy()
+
+    bus.connectTo('/dev/port', {baudRate: 9600});
+    bus.port.set = function(cfg, cb) {
+      cb('test error');
+    };
+    ;
+    
+    bus.on('error', errorEmitterSpy);
+    bus.setDaisyLine(true);
+    expect(errorEmitterSpy).to.have.been.called;
   });
 });
 
@@ -152,6 +184,14 @@ describe('Messaging', function() {
   it('returns current command', function() {
     bus.startMessage(0x09, 2, { destination: 0x05});
     expect(bus.messageCommand).to.equal(0x09);
+  });
+
+  it('forces array for responseDefault', function() {
+    bus.startMessage(0x09, 2, { 
+      responseMsg: true,
+      responseDefault: 'not array' 
+    });
+    expect(bus._msgOptions.responseDefault).to.deep.equal([0, 0]);
   });
 
   it('sends a standard message', function() {
@@ -353,6 +393,16 @@ describe('Addressing', function() {
 
     bus.timeouts.addressing = 1;
     bus.timeouts.nodeResponse = 1;
+  });
+
+  it('throws an exception if another message is being sent', function() {
+    bus.startMessage(0x00, 1);
+    expect(() => { bus.startAddressing() }).to.throw(Error);
+  });
+
+  it('throws an exception if no port has been connected', function() {
+    bus.port = null;
+    expect(() => { bus.startAddressing() }).to.throw(Error);
   });
 
   it('toggles daisy line before and after addressing', function() {
