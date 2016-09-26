@@ -12,6 +12,8 @@ The Disco Bus protocol, is a versatile master/slave protocol well suited for mul
 
 ### Basic Usage
 
+This example simply sends a single message to node 5 on the bus.
+
 ```js
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
 
@@ -27,10 +29,24 @@ master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
 master.startMessage(0x09, 2, { destination: 0x05})
   .sendData([0x01, 0x02])
   .endMessage();
+```
 
-// Get a 2-byte response from node 0x03
-master.startMessage(0x05, 2, { 
-    destination: 0x03,
+### Get Responses
+
+Asks node 9 to send a 3-byte response for message command `0x06`. 
+(for example, this could be asking node 9 the status of it's sensors, buttons or 
+current color)
+
+```js
+const DiscoBusMaster = require('discobus.js').DiscoBusMaster;
+
+// Create master device and connect it to a serial port  
+let master = new DiscoBusMaster();
+master.connectTo('/dev/ttyUSB0', {baudRate: 9600});
+
+// Get a 3-byte response from node 0x09
+master.startMessage(0x06, 3, { 
+    destination: 0x09,
     responseMsg: true
   }).subscribe(
     null,
@@ -42,6 +58,8 @@ master.startMessage(0x05, 2, {
 ```
 
 ### Addressing
+
+Assigns an address to all the slaves on the bus.
 
 ```js
 const DiscoBusMaster = require('discobus.js').DiscoBusMaster;

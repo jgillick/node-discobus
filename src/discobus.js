@@ -382,6 +382,12 @@ class DiscoBusMaster extends EventEmitter {
       throw new Error('No output port has been defined. See "connectTo()" and "connectWith()"');
     }
 
+    // If starting from 0, we should reset all the nodes first
+    if (startFrom === 0) {
+      this.startMessage(CMD.RESET, 0, { destination: BROADCAST_ADDRESS })
+      .endMessage();
+    }
+
     this.nodeNum = startFrom;
     this.messageResponse = [];
 

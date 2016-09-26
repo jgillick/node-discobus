@@ -366,6 +366,14 @@ describe('Addressing', function() {
     expect(portSpy).to.have.been.calledWith({ rts:true });
   });
 
+  it('should reset nodes first', function() {
+    bus.startAddressing();
+    expect(bus.port.buffer).to.deep.equal([
+      0xFF, 0xFF, 0, 0, 0xFA, 1, 0, 161, 5, // Reset message
+      0xFF, 0xFF, 3, 0, 0xFB, 0, 2, 0       // Addressing header
+    ])
+  });
+
   it('confirms valid address', function() {
     bus.startAddressing();
 
