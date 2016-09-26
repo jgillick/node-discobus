@@ -5,70 +5,7 @@
  *
  * See more about Disco Bus: https://github.com/jgillick/Disco-Bus-Protocol
  *
- * Connect to a bus
- * ----------------
- * ```
- *  const DiscoBus = require('discobus');
- *
- *  var bus = new DiscoBus();
- *
- *  // Connect to the '/dev/tty-usbserial1' serial device
- *  bus.connectTo("/dev/tty-usbserial1", {
- *    baudRate: 9600
- *  });
- * ```
- *
- * SENDING A STANDARD MESSAGE
- * ===========================
- * ```
- *  // Send RGB color values to node 2
- *  const CMD_SET_COLOR = 0xA1;
- *  bus.startMessage(CMD_SET_COLOR, 3, {
- *    destination: 2
- *  });
- *  bus.sendData([ 0xFF, 0x00, 0x99 ]);
- *  bus.endMessage();
- * ```
- *
- * BROADCASTING MESSAGES TO ALL NODES
- * ==================================
- * ```
- *  // Send RGB color values to all node
- *  const CMD_SET_COLOR = 0xA1;
- *  bus.startMessage(CMD_SET_COLOR, 3, {
- *    batchMode: true
- *  });
- *  bus.sendData([ 0xFF, 0x00, 0x99 ]); // node 1
- *  bus.sendData([ 0x00, 0x66, 0x20 ]); // node 2
- *  // ...
- *  bus.endMessage();
- * ```
- *
- * ASKING FOR A RESPONSE FROM ALL NODES
- * ====================================
- * ```
- *  // Get the sensor value
- *  const CMD_GET_VALUE = 0xA2;
- *  let source = bus.startMessage(CMD_GET_VALUE, 1, {
- *    batchMode: true,
- *    responseDefault: [0]
- *  });
- *
- *  // Subscribe to responses
- *  source.subscribe(
- *    (resp) => console.log('Real-time response from a single node', resp);
- *    (err) => console.error('ERROR: ', err);
- *    () => console.log('All responses', bus.messageResponse);
- *  )
- * ```
- *
- * NOTE ABOUT SUBSCRIBING
- * ======================
- * The observable that is returned is "hot", meaning it has started by the time
- * you have already started subscribing to it. So the first `next` value you
- * received might not be the first that has been sent.
- *
- * To get all the response values, look at the `messageResponse` property.
+ * See examples in README.md
  */
 
 import crc from 'crc';
@@ -189,7 +126,7 @@ class DiscoBusMaster extends EventEmitter {
    * @return {DiscoBus} Instance to this object, for chaining
    */
   connectTo(port, options, callback) {
-    var SerialPort = require("serialport");
+    const SerialPort = require("serialport");
     this.port = new SerialPort(port, options, callback);
     this.connectWith(this.port);
 

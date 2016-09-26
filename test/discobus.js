@@ -18,6 +18,7 @@ const SerialPort = DiscoBusMocks.SerialPort;
  */
 describe('DiscoBus Object', function() {
   let bus;
+  
   beforeEach(function(){
     bus = new DiscoBusMaster();
   });
@@ -355,8 +356,8 @@ describe('Addressing', function() {
   });
 
   it('toggles daisy line before and after addressing', function() {
-    var daisySpy = sinon.spy(bus, 'setDaisyLine');
-    var portSpy = sinon.spy(bus.port, 'set');
+    let daisySpy = sinon.spy(bus, 'setDaisyLine');
+    let portSpy = sinon.spy(bus.port, 'set');
 
     bus.startAddressing()
     .subscribe(null, null, () => {
