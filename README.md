@@ -1,4 +1,4 @@
-# Node Disco Bus 
+# Disco Bus communciation library 
 
 [![Build Status](https://travis-ci.org/jgillick/node-discobus.svg?branch=master)](https://travis-ci.org/jgillick/node-discobus)
 
