@@ -190,9 +190,9 @@ Connect to a serial device via [node-serialport](https://github.com/EmergingTech
 
 These are the same as passed to the [serialport contructor](https://github.com/EmergingTechnologyAdvisors/node-serialport#new_module_serialport--SerialPort_new)
 
- * port - A string to the serial port to open.
- * options - Port configuration options. ([options list](https://github.com/EmergingTechnologyAdvisors/node-serialport#module_serialport--SerialPort..openOptions))
- * openCallback - Called when a connection has been opened.
+ * `port`: A string to the serial port to open.
+ * `options`: Port configuration options. ([options list](https://github.com/EmergingTechnologyAdvisors/node-serialport#module_serialport--SerialPort..openOptions))
+ * `openCallback`: Called when a connection has been opened.
 
 **Returns**: The DiscoBusMaster instance. 
 
@@ -201,9 +201,9 @@ These are the same as passed to the [serialport contructor](https://github.com/E
 
 Connect with an existing open port connection. 
 
-**Parameters:**
+_**Parameters**_
 
- * **port**: A [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport) compatible port object.
+ * `port`: A [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport) compatible port object.
 
 The port object passed in needs to have the following methods, which behave like an open [node-serialport](https://github.com/EmergingTechnologyAdvisors/node-serialport)
 port:
@@ -220,15 +220,15 @@ port:
 
 Start a new message.
 
-**Parameters:**
+_**Parameters**_
 
- * **command**: The message command.
- * **length**: The length of the data (per node, for batchMode) we're planning to send.
- * **options**: Message options:
-   * **destination**: The node we're sending this message to (default: broadcast to all)
-   * **batchMode**: Send unique data sections for all nodes in this one message. (i.e. a different RGB color for each node)
-   * **responseMsg**: Ask one or more nodes to return some data.
-   * **responseDefault**: If a node doesn't response, this is the default response. (used with `responseMsg`).
+ * `command`: The message command.
+ * `length`: The length of the data (per node, for batchMode) we're planning to send.
+ * `options`: Message options:
+   * `destination`: The node we're sending this message to (default: broadcast to all)
+   * `batchMode`: Send unique data sections for all nodes in this one message. (i.e. a different RGB color for each node)
+   * `responseMsg`: Ask one or more nodes to return some data.
+   * `responseDefault`: If a node doesn't response, this is the default response. (used with `responseMsg`).
 
 **Returns**: The DiscoBusMaster instance.
 
@@ -237,9 +237,9 @@ Start a new message.
 
 Start dynamically addressing all nodes.
 
-**Parameters:**
+_**Parameters**_
 
-  * **startFrom**: (optional) The first address to start from.
+  * `startFrom`: (optional) The first address to start from.
 
 **Returns**: The DiscoBusMaster instance.
 
@@ -248,11 +248,11 @@ Start dynamically addressing all nodes.
 
 Subscribe to the current message observer stream. (this is a wrapper to `messageSubscription.subscribe`)
 
-**Parameters:**
+_**Parameters**_
 
-   * **nextCallback**: Called with the next value (received data or address)
-   * **errorCallback**: Called when there is an error
-   * **completeCallback**: Called when the message is complete.
+   * `nextCallback`: Called with the next value (received data or address)
+   * `errorCallback`: Called when there is an error
+   * `completeCallback`: Called when the message is complete.
 
 **Returns**: The DiscoBusMaster instance.
 
@@ -261,9 +261,9 @@ Subscribe to the current message observer stream. (this is a wrapper to `message
 
 Write bytes to the data section of the message.
 
-**Parameters:**
+_**Parameters**_
 
-  * **data**: An array of bytes to send.
+  * `data`: An array of bytes to send.
 
 **Returns**: The DiscoBusMaster instance.
 
@@ -281,9 +281,9 @@ and should not be called directly, in that case.
 Set's the outgoing daisy line to enabled or disabled, by toggling the port's RTS line.
 Override this method to use your own implementation.
 
-**Parameters**
+_**Parameters**_
 
-  * **enabled**: `true` to set the daisy line to enabled.
+  * `enabled`: `true` to set the daisy line to enabled.
 
 **Returns**: A promise which resolves when the daisy line has been set.
 
