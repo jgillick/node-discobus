@@ -155,8 +155,9 @@ class DiscoBusMaster extends EventEmitter {
       }.bind(this);
     }
     if (!this.__onOpen) {
+      // Drop daisy line when bus starts
       this.__onOpen = function() {
-        this._serial.setDaisy(false); 
+        this.setDaisyLine(false); 
       }.bind(this);
     }
 
