@@ -1,10 +1,10 @@
 {
   "name": "discobus",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The Disco Bus protocol, is a versatile master/slave protocol well suited for multidrop networks, like RS485.",
   "author": "Jeremy Gillick",
   "license": "MIT",
-  "main": "./lib/discobus",
+  "main": "./dist/discobus",
   "keywords": [
     "communication",
     "network",
