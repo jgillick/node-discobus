@@ -11,14 +11,14 @@ chai.use(sinonChai);
 const DiscoBusMocks = require('./mocks/discobus.mock.js');
 const DiscoBusMaster = DiscoBusMocks.DiscoBus.DiscoBusMaster;
 const SerialPort = DiscoBusMocks.SerialPort;
- 
+
 
 /**
  * General object construction
  */
 describe('DiscoBus Object', function() {
   let bus;
-  
+
   beforeEach(function(){
     bus = new DiscoBusMaster();
   });
@@ -96,7 +96,7 @@ describe('DiscoBus Object', function() {
       cb('test error');
     };
     ;
-    
+
     bus.on('error', errorEmitterSpy);
     bus.setDaisyLine(true);
     expect(errorEmitterSpy).to.have.been.called;
@@ -164,9 +164,11 @@ describe('Messaging', function() {
       expect(errorEmitterSpy).to.have.been.called;
       done();
     });
+
     bus.port.drain = function(cb) {
       cb('Error thing');
-    }
+    };
+
     bus.endMessage();
   });
 
@@ -187,9 +189,9 @@ describe('Messaging', function() {
   });
 
   it('forces array for responseDefault', function() {
-    bus.startMessage(0x09, 2, { 
+    bus.startMessage(0x09, 2, {
       responseMsg: true,
-      responseDefault: 'not array' 
+      responseDefault: 'not array'
     });
     expect(bus._msgOptions.responseDefault).to.deep.equal([0, 0]);
   });
@@ -362,7 +364,7 @@ describe('Messaging', function() {
           if (n.node == 3) {
             bus.port.receiveData(Buffer.from([8, 9]));
           }
-        }, null, 
+        }, null,
         () => { // complete
           expect(bus.messageResponse).to.have.lengthOf(5);
           expect(bus.messageResponse[0]).to.deep.equal([1, 2]);
@@ -372,7 +374,7 @@ describe('Messaging', function() {
           expect(bus.messageResponse[4]).to.deep.equal([8, 9]);
           done();
         });
-      
+
       // Send data for first 1.5 node sections
       bus.port.receiveData(Buffer.from([1, 2, 3]));
     });
@@ -405,24 +407,35 @@ describe('Addressing', function() {
     expect(() => { bus.startAddressing() }).to.throw(Error);
   });
 
-  it('toggles daisy line before and after addressing', function() {
+  it('toggles daisy line before and after addressing', function(done) {
     let daisySpy = sinon.spy(bus, 'setDaisyLine');
     let portSpy = sinon.spy(bus.port, 'set');
 
     bus.startAddressing()
     .subscribe(null, null, () => {
-      expect(portSpy).to.have.been.calledWith({ rts:false });  
+      try {
+        expect(daisySpy.callCount).to.be.equal(4);
+        expect(portSpy.firstCall).to.have.been.calledWith({ rts:false });  // on connect
+        expect(portSpy.secondCall).to.have.been.calledWith({ rts:false }); // on start address
+        expect(portSpy.thirdCall).to.have.been.calledWith({ rts:true });   // after sending address
+        done();
+      } catch(e) {
+        done(e);
+      }
     });
-    expect(daisySpy).to.have.been.called;
-    expect(portSpy).to.have.been.calledWith({ rts:true });
   });
 
-  it('should reset nodes first', function() {
+  it('should reset nodes first', function(done) {
     bus.startAddressing();
-    expect(bus.port.buffer).to.deep.equal([
-      0xFF, 0xFF, 0, 0, 0xFA, 1, 0, 161, 5, // Reset message
-      0xFF, 0xFF, 3, 0, 0xFB, 0, 2, 0       // Addressing header
-    ])
+    bus._drainPromise.then(() => {
+      try {
+        expect(bus.port.buffer).to.deep.equal([
+          0xFF, 0xFF, 0, 0, 0xFA, 1, 0, 161, 5, // Reset message
+          0xFF, 0xFF, 3, 0, 0xFB, 0, 2, 0       // Addressing header
+        ]);
+        done();
+      } catch(e) { done(e); }
+    });
   });
 
   it('confirms valid address', function() {
@@ -467,9 +480,11 @@ describe('Addressing', function() {
     bus.timeouts.addressing = 500;
     bus.startAddressing()
     .subscribe(null, null, () => {
-      expect(bus.nodeNum).to.be.equal(1);
-      expect(Date.now() - lastNodeTime).to.be.at.least(bus.timeouts.addressing);
-      done();
+      try {
+        expect(bus.nodeNum).to.be.equal(1);
+        expect(Date.now() - lastNodeTime).to.be.at.least(bus.timeouts.addressing);
+        done();
+      } catch(e) { done(e); }
     });
 
     // Register 1 node
@@ -494,7 +509,9 @@ describe('Addressing', function() {
   it('sends an error to subscriber for invalid address', function(done){
     bus.startAddressing()
     .subscribe((n) => {
-      expect(n.type).to.be.equal('error');
+      try {
+        expect(n.type).to.be.equal('error');
+      } catch(e) { done(e); }
     }, null, done);
 
     bus.port.receiveData(Buffer.from([5]));
@@ -502,16 +519,17 @@ describe('Addressing', function() {
   });
 
   it('cancels addressing on too many invalid addresses', function(done) {
-    let tries,
-        finished = false;
+    let tries;
 
     bus.startAddressing()
     .subscribe(null, (err) => {
-      expect(tries).to.be.equal(10);
-      done();
+      try {
+        expect(tries).to.be.within(10, 11);
+        done();
+      } catch(e) { done(e); }
     });
 
-    for (tries = 0; !finished && tries < 100; tries++) {
+    for (tries = 0; !bus._msgDone && tries < 100; tries++) {
       bus.port.receiveData(Buffer.from([5]));
     }
   });
@@ -519,17 +537,22 @@ describe('Addressing', function() {
   it('ends addressing with two 0xFF and a NULL message', function(done) {
     bus.startAddressing()
     .subscribe(null, null, () => {
-      expect(bus.port.buffer).to.deep.equal([
-        0xFF, 0xFF,    // end of addressing 
-        0, 0, 0xFF, 0, // null message header
-        212, 65]       // CRC
-      );
-      done();
+      try {
+        expect(bus.port.buffer).to.deep.equal([
+          0xFF, 0xFF,    // end of addressing
+          0, 0, 0xFF, 0, // null message header
+          212, 65]       // CRC
+        );
+        done();
+      } catch(e) { done(e); }
     });
 
     // Register 1 node
-    bus.port.receiveData(Buffer.from([1]));
-    bus.port.buffer = [];
+    bus._drainPromise
+    .then(() => {
+      bus.port.receiveData(Buffer.from([1]));
+      bus.port.buffer = [];
+    });
   });
 
 });

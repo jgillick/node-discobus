@@ -105,6 +105,7 @@ class DiscoBusMaster extends EventEmitter {
     this._responseCount = 0;
 
     this._promiseResolvers = null;
+    this._drainPromise = null;
 
     this._messageObserver = null;
     this._addressCorrections = 0;
@@ -157,7 +158,7 @@ class DiscoBusMaster extends EventEmitter {
     if (!this.__onOpen) {
       // Drop daisy line when bus starts
       this.__onOpen = function() {
-        this.setDaisyLine(false); 
+        this.setDaisyLine(false);
       }.bind(this);
     }
 
@@ -172,7 +173,7 @@ class DiscoBusMaster extends EventEmitter {
     port.on('open', this.__onOpen);
     if (port.isOpen) {
       this.__onOpen();
-    } 
+    }
 
     this.port = port;
   }
@@ -231,7 +232,7 @@ class DiscoBusMaster extends EventEmitter {
 
     // If we're requesting a response from all nodes, we're a batch message
     if (options.responseMsg && options.destination === BROADCAST_ADDRESS && options.batchMode === false) {
-      options.batchMode = true; 
+      options.batchMode = true;
     }
 
     // Can't pass a destination address in batch mode
@@ -329,7 +330,10 @@ class DiscoBusMaster extends EventEmitter {
     // If starting from 0, we should reset all the nodes first
     if (startFrom === 0) {
       this.startMessage(CMD.RESET, 0, { destination: BROADCAST_ADDRESS })
-      .endMessage();
+      .endMessage()
+      .subscribe(
+        (err) => { this._messageObserver.error(err); }
+      );
     }
 
     this.nodeNum = startFrom;
@@ -345,14 +349,13 @@ class DiscoBusMaster extends EventEmitter {
     this._addressCorrections = 0;
     this._promiseResolvers = [];
 
-    this._createMessageObserver();
     this.setDaisyLine(false);
 
     // Start address message
     this.startMessage(CMD.ADDRESS, 2, { batchMode: true, responseMsg: true });
 
     // Set daisy and send first address
-    this.port.drain(() => {
+    this._drainPromise.then(() => {
       this.setDaisyLine(true);
       this._sendBytes(startFrom);
 
@@ -446,7 +449,6 @@ class DiscoBusMaster extends EventEmitter {
       return this;
     }
 
-
     // End addressing message
     if (this._addressing) {
       this._addressing = false;
@@ -465,47 +467,49 @@ class DiscoBusMaster extends EventEmitter {
         0,        // length
       ]);
     }
-    
+
     // Can't end response message until all responses have been received
     if(this._msgOptions.responseMsg && this._responseCount < this._fullDataLen) {
       this.emit('error', 'Cannot end the message until all responses have been received.');
       return this;
     }
 
-    // Fill in missing data 
+    // Fill in missing data
     if (!this._msgOptions.responseMsg && this._sentLen < this._fullDataLen) {
       let missingLen = this._fullDataLen - this._sentLen;
       let fill = new Array(missingLen).fill(0);
       this.sendData(fill);
     }
 
-    // Send CRC
+    // Add CRC
     let crcValue = crc.crc16modbus(this._crc, 0xFFFF);
     let crcBytes = this._convert16bitTo8(crcValue);
-    this._sendBytes(crcBytes, false);
 
-    // Reset daisy and end message
-    this.setDaisyLine(false);
-    this._msgDone = true;
-
-    // Resolve message observer
-    if (this._messageObserver) {
-
+    // Send and resolve
+    let obs = this._messageObserver;
+    this._sendBytes(crcBytes, false)
+    .catch((sendErr) => {
+      let errMsg = `Error sending data: ${sendErr}`;
+      this.emit('error', errMsg);
+      obs.error(errMsg);
+    })
+    .then(() => {
+      // Ending error
       if (error) {
         this.emit('error', error);
-        this._messageObserver.error(error);
+        obs.error(error);
         return this;
       }
 
-      this.port.drain( (err) => {
-        if (err) {
-          let errMsg = `Error sending data: ${err}`;
-          this.emit('error', errMsg);
-          this._messageObserver.error(errMsg);
-        }
-        this._messageObserver.complete();
-      });
-    }
+      // Completed
+      else {
+        obs.complete();
+      }
+    });
+
+    // Reset daisy and clean up
+    this.setDaisyLine(false);
+    this._msgDone = true;
 
     return this;
   }
@@ -546,8 +550,8 @@ class DiscoBusMaster extends EventEmitter {
         this._addressCorrections = 0;
         this._sendBytes(this.nodeNum); // confirm address
         this._messageObserver.next(new BusSubscriberNextVal(
-          'addressing', 
-          this.nodeNum, 
+          'addressing',
+          this.nodeNum,
           this.nodeNum
         ));
       }
@@ -561,10 +565,10 @@ class DiscoBusMaster extends EventEmitter {
         }
         // Address correction: send 0x00 followed by last valid address
         else {
-          let errMsg =`Invalid address ${addr}. Expecting: ${expectedAddr}`; 
+          let errMsg =`Invalid address ${addr}. Expecting: ${expectedAddr}`;
           this._messageObserver.next(new BusSubscriberNextVal('error', errMsg));
           this.emit('error', errMsg);
-          
+
           this._sendBytes(0x00);
           this._sendBytes(this.nodeNum);
         }
@@ -597,7 +601,7 @@ class DiscoBusMaster extends EventEmitter {
       if (dataDone) {
         this.endMessage();
       } else {
-        this.port.drain(() => {
+        this._drainPromise.then(() => {
           this._restartResponseTimer();
         });
       }
@@ -718,13 +722,13 @@ class DiscoBusMaster extends EventEmitter {
    * Start the timeout counter for addressing or node responses.
    */
   _startResponseTimer() {
-    this._stopResponseTimer();
+    let timeout = (this._addressing) ? this.timeouts.addressing : this.timeouts.nodeResponse;
 
+    this._stopResponseTimer();
     if (this._msgDone) return;
 
     // Start timer once data has sent
-    this.port.drain(() => {
-      let timeout = (this._addressing) ? this.timeouts.addressing : this.timeouts.nodeResponse;
+    this._drainPromise.then(() => {
       this._responseTimer = setTimeout(this._handleResponseTimeout.bind(this), timeout);
     });
   }
@@ -751,24 +755,37 @@ class DiscoBusMaster extends EventEmitter {
    *
    * @param {number[]} values The byte or bytes to send.
    * @param {boolean} updateCRC Set this to false to not update the CRC with this byte
+   *
+   * @return {Promise} Resolves when the data has been sent to the device (after drain)
    */
   _sendBytes(values, updateCRC=true) {
-    let buff;
+    this._drainPromise = new Promise( (resolve, reject) => {
+      let buff;
 
-    if (typeof values.length !== 'undefined') {
-      buff = Buffer.from(values);
-    }
-    else {
-      buff = Buffer.from([values]);
-    }
-
-    this.port.write(buff);
-
-    if (updateCRC) {
-      for (let i = 0; i < buff.length; i++) {
-        this._crc.push(buff.readUInt8(i));
+      if (typeof values.length !== 'undefined') {
+        buff = Buffer.from(values);
       }
-    }
+      else {
+        buff = Buffer.from([values]);
+      }
+
+      this.port.write(buff, (err) => {
+        if (err) return reject(err);
+
+        this.port.drain((err) => {
+          if (err) reject(err);
+          else resolve()
+        });
+      });
+
+      if (updateCRC) {
+        for (let i = 0; i < buff.length; i++) {
+          this._crc.push(buff.readUInt8(i));
+        }
+      }
+    });
+
+    return this._drainPromise;
   }
 
   /**
@@ -796,7 +813,7 @@ class BusSubscriberNextVal {
   /**
    * @param {String} type The type of value ('response', 'addressing', 'error')
    * @param {Any} value The value
-   * @param {number} nodeAddr The node address associated with this value.  
+   * @param {number} nodeAddr The node address associated with this value.
    */
   constructor(type, value, nodeAddr=-1) {
     this.type = type;

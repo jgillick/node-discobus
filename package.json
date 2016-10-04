@@ -1,6 +1,6 @@
 {
   "name": "discobus",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "The Disco Bus protocol, is a versatile master/slave protocol well suited for multidrop networks, like RS485.",
   "author": "Jeremy Gillick",
   "license": "MIT",
@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "prepublish": "npm run build",
-    "test": "node_modules/mocha/bin/mocha",
-    "test_watch": "node_modules/mocha/bin/mocha --watch",
+    "test": "node_modules/mocha/bin/mocha --bail",
+    "test_watch": "node_modules/mocha/bin/mocha --watch --bail",
     "build": "babel src --out-dir dist -s",
     "build_watch": "babel src --out-dir dist -s --watch",
     "coverage": "istanbul cover --print both _mocha"

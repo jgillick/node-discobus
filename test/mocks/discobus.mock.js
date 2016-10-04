@@ -7,7 +7,7 @@ const proxyquire =  require('proxyquire');
 require('source-map-support').install();
 
 // Stub out SerialPort module
-class SerialPortMock extends EventEmitter { 
+class SerialPortMock extends EventEmitter {
   constructor (dev, options) {
     super();
     this.dev = dev;
@@ -20,8 +20,9 @@ class SerialPortMock extends EventEmitter {
     this.emit('open');
   }
 
-  write(data) {
-    this.buffer.push.apply(this.buffer, data); 
+  write(data, cb) {
+    this.buffer.push.apply(this.buffer, data);
+    cb();
   }
   drain (cb) {
     cb();
@@ -37,7 +38,7 @@ SerialPortMock.prototype.set = function(config, cb) {
 }
 
 // Module updates
-var DiscoBus = proxyquire('../../dist/discobus', { 
+var DiscoBus = proxyquire('../../dist/discobus', {
   'serialport': SerialPortMock
 });
 
